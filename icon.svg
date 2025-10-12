@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#90CAF9"/>
+  
+  <!-- Cerebro estilizado con circuitos -->
+  <g transform="translate(256, 256)">
+    <!-- Hemisferio izquierdo -->
+    <path d="M -80,-120 Q -140,-100 -140,-40 Q -140,0 -120,40 Q -100,80 -60,100 L -60,60 Q -80,40 -80,0 Q -80,-40 -60,-80 Z" 
+          fill="#4a5f7f" opacity="0.9"/>
+    
+    <!-- Hemisferio derecho -->
+    <path d="M 80,-120 Q 140,-100 140,-40 Q 140,0 120,40 Q 100,80 60,100 L 60,60 Q 80,40 80,0 Q 80,-40 60,-80 Z" 
+          fill="#4a5f7f" opacity="0.9"/>
+    
+    <!-- Centro/conexión -->
+    <ellipse cx="0" cy="-20" rx="30" ry="80" fill="#EBF5FF"/>
+    
+    <!-- Circuitos/neuronas - izquierda -->
+    <circle cx="-90" cy="-60" r="8" fill="#EBF5FF"/>
+    <circle cx="-110" cy="-20" r="8" fill="#EBF5FF"/>
+    <circle cx="-100" cy="20" r="8" fill="#EBF5FF"/>
+    <circle cx="-70" cy="60" r="8" fill="#EBF5FF"/>
+    
+    <!-- Circuitos/neuronas - derecha -->
+    <circle cx="90" cy="-60" r="8" fill="#EBF5FF"/>
+    <circle cx="110" cy="-20" r="8" fill="#EBF5FF"/>
+    <circle cx="100" cy="20" r="8" fill="#EBF5FF"/>
+    <circle cx="70" cy="60" r="8" fill="#EBF5FF"/>
+    
+    <!-- Líneas de conexión -->
+    <line x1="-90" y1="-60" x2="-70" y2="-40" stroke="#EBF5FF" stroke-width="3"/>
+    <line x1="-110" y1="-20" x2="-80" y2="0" stroke="#EBF5FF" stroke-width="3"/>
+    <line x1="-100" y1="20" x2="-70" y2="40" stroke="#EBF5FF" stroke-width="3"/>
+    
+    <line x1="90" y1="-60" x2="70" y2="-40" stroke="#EBF5FF" stroke-width="3"/>
+    <line x1="110" y1="-20" x2="80" y2="0" stroke="#EBF5FF" stroke-width="3"/>
+    <line x1="100" y1="20" x2="70" y2="40" stroke="#EBF5FF" stroke-width="3"/>
+    
+    <!-- Conexiones centrales -->
+    <line x1="-30" y1="-40" x2="30" y2="-40" stroke="#EBF5FF" stroke-width="3"/>
+    <line x1="-30" y1="0" x2="30" y2="0" stroke="#EBF5FF" stroke-width="3"/>
+    <line x1="-30" y1="40" x2="30" y2="40" stroke="#EBF5FF" stroke-width="3"/>
+  </g>
+</svg>

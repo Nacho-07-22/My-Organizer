@@ -1,0 +1,19 @@
+{
+  "name": "Mi Organizador de Tareas",
+  "short_name": "Mi Organizador",
+  "description": "Gestiona tu horario diario con notificaciones",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#90CAF9",
+  "theme_color": "#90CAF9",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

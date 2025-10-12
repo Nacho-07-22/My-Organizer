@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#90CAF9" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Mi Organizador" />
+    <link rel="apple-touch-icon" href="icon.svg" />
+    <meta name="msapplication-TileImage" content="icon.svg" />
+    <link rel="icon" href="icon.svg" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-status-bar-style" content="default" />
+    <meta name="mobile-web-app-title" content="Mi Organizador" />
+    <link rel="manifest" href="manifest.json" />
+    <title>Mi Organizador</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+      }
+      .emoji-btn {
+        transition: all 0.2s;
+      }
+      .emoji-btn:hover {
+        transform: scale(1.1);
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gradient-to-br from-blue-50 via-white to-amber-50 min-h-screen"
+  >
+    <div id="app"></div>
+
+    <script>
+      var defaultSchedule = {
+        Lunes: [
+          { time: "7-8am", task: "Clases y comida tito", icon: "📚" },
+          { time: "9-10am", task: "Tareas U", icon: "✍" },
+          { time: "11-12pm", task: "Tareas U", icon: "✍" },
+          { time: "3-4pm", task: "Balonmano", icon: "🤾" },
+          { time: "5-6pm", task: "Estudiar calculo", icon: "📐" },
+          { time: "10-11pm", task: "Dormir", icon: "😴" },
+        ],
+        Martes: [
+          { time: "7-8am", task: "Clases", icon: "📚" },
+          { time: "1-2pm", task: "Clases U", icon: "🎓" },
+          { time: "5-6pm", task: "Tareas U", icon: "✍" },
+          { time: "7-8pm", task: "Balonmano", icon: "🤾" },
+          { time: "10-11pm", task: "Estudiar calculo", icon: "📐" },
+        ],
+        Miercoles: [
+          { time: "7-8am", task: "Tareas U", icon: "✍" },
+          { time: "9-10am", task: "Tareas U", icon: "✍" },
+          { time: "1-2pm", task: "Tareas U", icon: "✍" },
+          { time: "3-4pm", task: "Balonmano", icon: "🤾" },
+          { time: "7-8pm", task: "Tareas U", icon: "✍" },
+          { time: "10-11pm", task: "Estudiar calculo", icon: "📐" },
+        ],
+        Jueves: [
+          { time: "7-8am", task: "Clases", icon: "📚" },
+          { time: "5-6pm", task: "Estudiar calculo", icon: "📐" },
+          { time: "7-8pm", task: "Tareas U", icon: "✍" },
+          { time: "10-11pm", task: "Estudiar calculo", icon: "📐" },
+        ],
+        Viernes: [
+          { time: "7-8am", task: "Clases", icon: "📚" },
+          { time: "5-6pm", task: "Tareas U", icon: "✍" },
+          { time: "7-8pm", task: "Tareas U", icon: "✍" },
+          { time: "10-11pm", task: "Estudiar calculo", icon: "📐" },
+        ],
+        Sabado: [
+          { time: "7-8am", task: "Dormir", icon: "😴" },
+          { time: "3-4pm", task: "Balonmano", icon: "🤾" },
+          { time: "5-6pm", task: "Estudiar calculo", icon: "📐" },
+          { time: "10-11pm", task: "Descanso", icon: "🌙" },
+        ],
+        Domingo: [
+          { time: "7-8am", task: "Dormir", icon: "😴" },
+          { time: "10-11pm", task: "Descanso", icon: "🌙" },
+        ],
+      };
+
+      var days = [
+        "Lunes",
+        "Martes",
+        "Miercoles",
+        "Jueves",
+        "Viernes",
+        "Sabado",
+        "Domingo",
+      ];
+      var commonEmojis = [
+        "📚",
+        "✍",
+        "🤾",
+        "📐",
+        "😴",
+        "🌙",
+        "🎓",
+        "📝",
+        "💻",
+        "🎯",
+        "🏃",
+        "🍽",
+        "📱",
+        "🎮",
+        "🎨",
+        "🎵",
+      ];
+
+      var user = null;
+      var schedule = JSON.parse(JSON.stringify(defaultSchedule));
+      var completedTasks = {};
+      var notificationsEnabled = false;
+      var currentView = "schedule";
+      var editingTask = null;
+      var scheduledTimeouts = [];
+
+      function loadData() {
+        try {
+          var savedUser = sessionStorage.getItem("user");
+          var savedSchedule = sessionStorage.getItem("schedule");
+          var savedCompleted = sessionStorage.getItem("completedTasks");
+          var savedNotifications = sessionStorage.getItem(
+            "notificationsEnabled"
+          );
+
+          if (savedUser) user = JSON.parse(savedUser);
+          if (savedSchedule) schedule = JSON.parse(savedSchedule);
+          if (savedCompleted) completedTasks = JSON.parse(savedCompleted);
+          if (savedNotifications)
+            notificationsEnabled = savedNotifications === "true";
+        } catch (error) {
+          console.error("Error cargando datos:", error);
+        }
+      }
+
+      function saveSchedule() {
+        sessionStorage.setItem("schedule", JSON.stringify(schedule));
+      }
+
+      function saveCompleted() {
+        sessionStorage.setItem(
+          "completedTasks",
+          JSON.stringify(completedTasks)
+        );
+      }
+
+      function login() {
+        var emailInput = document.getElementById("email");
+        if (!emailInput) return;
+
+        var email = emailInput.value.trim();
+        if (email && email.indexOf("@") > -1) {
+          user = { email: email };
+          sessionStorage.setItem("user", JSON.stringify(user));
+          render();
+        } else {
+          alert("Por favor ingresa un correo electrónico válido");
+        }
+      }
+
+      function logout() {
+        user = null;
+        sessionStorage.removeItem("user");
+        clearAllTimeouts();
+
+        // Cerrar la pestaña automáticamente al salir
+        window.close();
+
+        // Si window.close() no funciona (algunas restricciones del navegador), redirigir a about:blank
+        setTimeout(function () {
+          window.location.href = "about:blank";
+        }, 100);
+
+        render();
+      }
+
+      function toggleTask(day, idx) {
+        var key = day + "-" + idx;
+        completedTasks[key] = !completedTasks[key];
+        saveCompleted();
+        render();
+      }
+
+      function startEdit(day, idx) {
+        if (!schedule[day] || !schedule[day][idx]) return;
+
+        var task = schedule[day][idx];
+        editingTask = {
+          day: day,
+          idx: idx,
+          time: task.time,
+          task: task.task,
+          icon: task.icon,
+        };
+        render();
+      }
+
+      function saveEdit() {
+        if (!editingTask) return;
+
+        if (!schedule[editingTask.day]) {
+          schedule[editingTask.day] = [];
+        }
+
+        schedule[editingTask.day][editingTask.idx] = {
+          time: editingTask.time,
+          task: editingTask.task,
+          icon: editingTask.icon,
+        };
+
+        saveSchedule();
+
+        if (notificationsEnabled) {
+          clearAllTimeouts();
+          scheduleAllNotifications();
+        }
+
+        editingTask = null;
+        render();
+      }
+
+      function cancelEdit() {
+        editingTask = null;
+        render();
+      }
+
+      function deleteTask(day, idx) {
+        if (!confirm("¿Estás seguro de que quieres eliminar esta tarea?"))
+          return;
+
+        if (schedule[day] && schedule[day][idx]) {
+          schedule[day].splice(idx, 1);
+
+          for (var key in completedTasks) {
+            if (key.indexOf(day + "-") === 0) {
+              delete completedTasks[key];
+            }
+          }
+
+          saveSchedule();
+          saveCompleted();
+
+          if (notificationsEnabled) {
+            clearAllTimeouts();
+            scheduleAllNotifications();
+          }
+
+          render();
+        }
+      }
+
+      function showAddTaskModal() {
+        var modal = document.getElementById("addTaskModal");
+        if (modal) {
+          modal.classList.remove("hidden");
+        }
+      }
+
+      function hideAddTaskModal() {
+        var modal = document.getElementById("addTaskModal");
+        if (modal) {
+          modal.classList.add("hidden");
+        }
+
+        var newDay = document.getElementById("newDay");
+        var newTime = document.getElementById("newTime");
+        var newTask = document.getElementById("newTask");
+        var newIcon = document.getElementById("newIcon");
+
+        if (newDay) newDay.value = "";
+        if (newTime) newTime.value = "9-10am";
+        if (newTask) newTask.value = "";
+        if (newIcon) newIcon.value = "📝";
+      }
+
+      function addTask() {
+        var dayInput = document.getElementById("newDay");
+        var timeInput = document.getElementById("newTime");
+        var taskInput = document.getElementById("newTask");
+        var iconInput = document.getElementById("newIcon");
+
+        if (!dayInput || !timeInput || !taskInput || !iconInput) return;
+
+        var day = dayInput.value;
+        var time = timeInput.value.trim();
+        var task = taskInput.value.trim();
+        var icon = iconInput.value.trim();
+
+        if (!day || !task) {
+          alert("Por favor completa el día y el nombre de la tarea");
+          return;
+        }
+
+        if (!schedule[day]) {
+          schedule[day] = [];
+        }
+
+        schedule[day].push({ time: time, task: task, icon: icon || "📝" });
+        saveSchedule();
+        hideAddTaskModal();
+
+        if (notificationsEnabled) {
+          clearAllTimeouts();
+          scheduleAllNotifications();
+        }
+
+        render();
+      }
+
+      function selectEmoji(emoji) {
+        var iconInput = document.getElementById("newIcon");
+        if (iconInput) {
+          iconInput.value = emoji;
+        }
+      }
+
+      function updateEditField(field, value) {
+        if (editingTask) {
+          editingTask[field] = value;
+        }
+      }
+
+      function clearAllTimeouts() {
+        for (var i = 0; i < scheduledTimeouts.length; i++) {
+          clearTimeout(scheduledTimeouts[i]);
+        }
+        scheduledTimeouts = [];
+      }
+
+      function enableNotifications() {
+        if (!("Notification" in window)) {
+          alert("Tu navegador no soporta notificaciones.");
+          return;
+        }
+
+        Notification.requestPermission().then(function (permission) {
+          if (permission === "granted") {
+            notificationsEnabled = true;
+            sessionStorage.setItem("notificationsEnabled", "true");
+            scheduleAllNotifications();
+            render();
+
+            new Notification("Notificaciones Activadas", {
+              body: "Recibirás recordatorios de tus tareas",
+              icon: "📅",
+            });
+          } else {
+            alert("Por favor, permite las notificaciones.");
+          }
+        });
+      }
+
+      function scheduleAllNotifications() {
+        if (!notificationsEnabled || Notification.permission !== "granted")
+          return;
+
+        clearAllTimeouts();
+
+        var now = new Date();
+        var currentDay = getCurrentDay();
+        var todayTasks = schedule[currentDay] || [];
+
+        for (var i = 0; i < todayTasks.length; i++) {
+          scheduleTaskNotification(todayTasks[i], currentDay, i);
+        }
+
+        var nextMidnight = new Date();
+        nextMidnight.setHours(24, 0, 0, 0);
+        var timeUntilMidnight = nextMidnight - now;
+
+        var midnightTimeout = setTimeout(function () {
+          scheduleAllNotifications();
+        }, timeUntilMidnight);
+
+        scheduledTimeouts.push(midnightTimeout);
+      }
+
+      function scheduleTaskNotification(task, day, idx) {
+        if (!task || !task.time) return;
+
+        var timeStr = task.time.split("-")[0].trim();
+        var match = timeStr.match(/(\d+)(am|pm)/i);
+
+        if (!match) return;
+
+        var hour = parseInt(match[1]);
+        var period = match[2].toLowerCase();
+
+        if (period === "pm" && hour !== 12) {
+          hour += 12;
+        } else if (period === "am" && hour === 12) {
+          hour = 0;
+        }
+
+        var now = new Date();
+        var taskTime = new Date();
+        taskTime.setHours(hour, 0, 0, 0);
+
+        var timeUntilTask = taskTime - now;
+
+        if (timeUntilTask > 0 && timeUntilTask < 86400000) {
+          var timeout = setTimeout(function () {
+            if (notificationsEnabled && Notification.permission === "granted") {
+              new Notification(task.icon + " Hora de: " + task.task, {
+                body: "Es hora de comenzar tu tarea de " + task.time,
+                icon: "📅",
+                tag: "task-" + day + "-" + idx,
+              });
+
+              if ("vibrate" in navigator) {
+                navigator.vibrate([200, 100, 200]);
+              }
+            }
+          }, timeUntilTask);
+
+          scheduledTimeouts.push(timeout);
+        }
+      }
+
+      function checkAndScheduleNotifications() {
+        var savedNotifications = sessionStorage.getItem("notificationsEnabled");
+        if (
+          savedNotifications === "true" &&
+          "Notification" in window &&
+          Notification.permission === "granted"
+        ) {
+          notificationsEnabled = true;
+          scheduleAllNotifications();
+        }
+      }
+
+      function getStats() {
+        var totalTasks = 0;
+        for (var i = 0; i < days.length; i++) {
+          var dayTasks = schedule[days[i]] || [];
+          totalTasks += dayTasks.length;
+        }
+
+        var completed = 0;
+        for (var key in completedTasks) {
+          if (completedTasks[key]) completed++;
+        }
+
+        var percentage =
+          totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
+
+        return {
+          totalTasks: totalTasks,
+          completed: completed,
+          percentage: percentage,
+        };
+      }
+
+      function getCurrentDay() {
+        var now = new Date();
+        var dayIndex = now.getDay();
+        return days[dayIndex === 0 ? 6 : dayIndex - 1];
+      }
+
+      function escapeHtml(text) {
+        var div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      function render() {
+        var app = document.getElementById("app");
+        if (!app) return;
+
+        if (!user) {
+          app.innerHTML =
+            '<div class="min-h-screen flex items-center justify-center p-4">' +
+            '<div class="bg-white rounded-3xl shadow-xl p-8 max-w-md w-full border-2 border-blue-100">' +
+            '<div class="text-center mb-8">' +
+            '<div class="text-6xl mb-4">📅</div>' +
+            '<h1 class="text-3xl font-bold text-blue-400 mb-2">Mi Organizador</h1>' +
+            '<p class="text-amber-600">Gestiona tu horario diario</p>' +
+            "</div>" +
+            '<div class="space-y-4">' +
+            "<div>" +
+            '<label class="block text-sm font-medium text-blue-400 mb-2">Correo Electrónico</label>' +
+            '<input type="email" id="email" placeholder="tu@email.com" class="w-full px-4 py-3 rounded-xl border-2 border-blue-100 focus:border-blue-300 focus:outline-none">' +
+            "</div>" +
+            '<button onclick="login()" class="w-full bg-gradient-to-r from-blue-300 to-blue-400 text-white py-3 rounded-xl font-semibold hover:from-blue-400 hover:to-blue-500 transition-all shadow-md">Iniciar Sesión</button>' +
+            "</div>" +
+            "</div>" +
+            "</div>";
+          return;
+        }
+
+        var currentDay = getCurrentDay();
+        var stats = getStats();
+
+        var modalHtml =
+          '<div id="addTaskModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">' +
+          '<div class="bg-white rounded-2xl p-6 max-w-md w-full border-2 border-blue-100">' +
+          '<div class="flex justify-between items-center mb-4">' +
+          '<h3 class="text-xl font-bold text-blue-400">Agregar Nueva Tarea</h3>' +
+          '<button onclick="hideAddTaskModal()" class="text-gray-400 hover:text-gray-600 text-2xl">✖️</button>' +
+          "</div>" +
+          '<div class="space-y-4">' +
+          '<div><label class="block text-sm font-medium text-blue-400 mb-2">Día</label>' +
+          '<select id="newDay" class="w-full px-4 py-2 rounded-lg border-2 border-blue-100 focus:border-blue-300 focus:outline-none">' +
+          '<option value="">Selecciona un día</option>';
+
+        for (var i = 0; i < days.length; i++) {
+          modalHtml +=
+            '<option value="' + days[i] + '">' + days[i] + "</option>";
+        }
+
+        modalHtml +=
+          "</select></div>" +
+          '<div><label class="block text-sm font-medium text-blue-400 mb-2">Horario</label>' +
+          '<input type="text" id="newTime" value="9-10am" placeholder="Ej: 9-10am" class="w-full px-4 py-2 rounded-lg border-2 border-blue-100 focus:border-blue-300 focus:outline-none"></div>' +
+          '<div><label class="block text-sm font-medium text-blue-400 mb-2">Nombre</label>' +
+          '<input type="text" id="newTask" placeholder="Ej: Estudiar" class="w-full px-4 py-2 rounded-lg border-2 border-blue-100 focus:border-blue-300 focus:outline-none"></div>' +
+          '<div><label class="block text-sm font-medium text-blue-400 mb-2">Emoji</label>' +
+          '<div class="grid grid-cols-8 gap-2 mb-2">';
+
+        for (var i = 0; i < commonEmojis.length; i++) {
+          modalHtml +=
+            "<button onclick=\"selectEmoji('" +
+            commonEmojis[i] +
+            '\')" class="emoji-btn text-2xl p-2 rounded-lg border-2 border-blue-100 hover:border-blue-400">' +
+            commonEmojis[i] +
+            "</button>";
+        }
+
+        modalHtml +=
+          "</div>" +
+          '<input type="text" id="newIcon" value="📝" maxlength="2" class="w-full px-4 py-2 rounded-lg border-2 border-blue-100 focus:border-blue-300 focus:outline-none text-center text-2xl"></div>' +
+          '<button onclick="addTask()" class="w-full bg-gradient-to-r from-blue-300 to-blue-400 text-white py-3 rounded-xl font-semibold hover:from-blue-400 hover:to-blue-500 transition-all shadow-md">Agregar Tarea</button>' +
+          "</div></div></div>";
+
+        var contentHtml = "";
+
+        if (currentView === "schedule") {
+          var todayTasks = schedule[currentDay] || [];
+          var todayHtml = "";
+
+          for (var i = 0; i < todayTasks.length; i++) {
+            var task = todayTasks[i];
+            var isCompleted = completedTasks[currentDay + "-" + i];
+            var isEditing =
+              editingTask &&
+              editingTask.day === currentDay &&
+              editingTask.idx === i;
+
+            if (isEditing) {
+              todayHtml +=
+                '<div class="p-4 rounded-xl border-2 border-blue-300 bg-blue-50">' +
+                '<div class="space-y-3">' +
+                '<input type="text" value="' +
+                escapeHtml(editingTask.time) +
+                '" oninput="updateEditField(\'time\', this.value)" class="w-full px-3 py-2 rounded-lg border-2 border-blue-200 focus:border-blue-400 focus:outline-none" placeholder="Horario">' +
+                '<input type="text" value="' +
+                escapeHtml(editingTask.task) +
+                '" oninput="updateEditField(\'task\', this.value)" class="w-full px-3 py-2 rounded-lg border-2 border-blue-200 focus:border-blue-400 focus:outline-none" placeholder="Nombre">' +
+                '<input type="text" value="' +
+                escapeHtml(editingTask.icon) +
+                '" oninput="updateEditField(\'icon\', this.value)" maxlength="2" class="w-full px-3 py-2 rounded-lg border-2 border-blue-200 focus:border-blue-400 focus:outline-none text-center text-2xl" placeholder="Emoji">' +
+                '<div class="flex gap-2">' +
+                '<button onclick="saveEdit()" class="flex-1 bg-green-400 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-500">Guardar</button>' +
+                '<button onclick="cancelEdit()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-400">Cancelar</button>' +
+                "</div></div></div>";
+            } else {
+              todayHtml +=
+                '<div class="p-4 rounded-xl border-2 ' +
+                (isCompleted
+                  ? "bg-green-50 border-green-200"
+                  : "bg-amber-50 border-amber-200") +
+                '">' +
+                '<div class="flex items-center justify-between">' +
+                '<div class="flex items-center gap-3 flex-1 cursor-pointer" onclick="toggleTask(\'' +
+                currentDay +
+                "', " +
+                i +
+                ')">' +
+                '<span class="text-3xl">' +
+                task.icon +
+                "</span>" +
+                '<div><p class="font-semibold text-blue-400">' +
+                escapeHtml(task.task) +
+                "</p>" +
+                '<p class="text-sm text-amber-600">⏰ ' +
+                escapeHtml(task.time) +
+                "</p></div>" +
+                "</div>" +
+                '<div class="flex items-center gap-2">' +
+                "<button onclick=\"startEdit('" +
+                currentDay +
+                "', " +
+                i +
+                ')" class="p-2 text-blue-400 hover:bg-blue-100 rounded-lg">✏️</button>' +
+                "<button onclick=\"deleteTask('" +
+                currentDay +
+                "', " +
+                i +
+                ')" class="p-2 text-red-400 hover:bg-red-100 rounded-lg">🗑️</button>' +
+                '<span class="text-3xl">' +
+                (isCompleted ? "✅" : "⭕") +
+                "</span>" +
+                "</div></div></div>";
+            }
+          }
+
+          if (todayTasks.length === 0) {
+            todayHtml =
+              '<p class="text-center text-gray-500 py-8">No hay tareas para hoy</p>';
+          }
+
+          var weekHtml = "";
+          for (var d = 0; d < days.length; d++) {
+            var day = days[d];
+            var dayTasks = schedule[day] || [];
+            var dayTasksHtml = "";
+
+            for (var t = 0; t < dayTasks.length; t++) {
+              var task = dayTasks[t];
+              var isCompleted = completedTasks[day + "-" + t];
+
+              dayTasksHtml +=
+                '<div class="flex items-center justify-between p-3 rounded-lg group ' +
+                (isCompleted
+                  ? "bg-green-50 border border-green-200"
+                  : "bg-amber-50 border border-amber-200") +
+                '">' +
+                '<div class="flex items-center gap-2 flex-1 cursor-pointer" onclick="toggleTask(\'' +
+                day +
+                "', " +
+                t +
+                ')">' +
+                '<span class="text-xl">' +
+                task.icon +
+                "</span>" +
+                '<span class="text-sm text-blue-400">' +
+                escapeHtml(task.time) +
+                "</span>" +
+                '<span class="text-sm font-medium text-amber-600">' +
+                escapeHtml(task.task) +
+                "</span>" +
+                "</div>" +
+                '<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100">' +
+                "<button onclick=\"startEdit('" +
+                day +
+                "', " +
+                t +
+                ')" class="p-1 text-blue-400 hover:bg-blue-100 rounded">✏️</button>' +
+                "<button onclick=\"deleteTask('" +
+                day +
+                "', " +
+                t +
+                ')" class="p-1 text-red-400 hover:bg-red-100 rounded">🗑️</button>' +
+                '<span class="text-xl">' +
+                (isCompleted ? "✅" : "⭕") +
+                "</span>" +
+                "</div></div>";
+            }
+
+            if (dayTasks.length === 0) {
+              dayTasksHtml =
+                '<p class="text-center text-gray-400 text-sm py-4">Sin tareas</p>';
+            }
+
+            weekHtml +=
+              '<div class="border-2 border-blue-50 rounded-xl p-4">' +
+              '<h3 class="font-bold text-blue-400 mb-3">' +
+              day +
+              "</h3>" +
+              '<div class="grid gap-2">' +
+              dayTasksHtml +
+              "</div></div>";
+          }
+
+          contentHtml =
+            '<div class="space-y-6">' +
+            '<div class="flex justify-between items-center">' +
+            '<h2 class="text-2xl font-bold text-blue-400">Mi Horario</h2>' +
+            '<button onclick="showAddTaskModal()" class="flex items-center gap-2 bg-gradient-to-r from-blue-300 to-blue-400 text-white px-4 py-2 rounded-xl font-semibold hover:from-blue-400 hover:to-blue-500 shadow-md">➕ Nueva Tarea</button>' +
+            "</div>" +
+            '<div class="bg-white rounded-2xl p-6 shadow-md border-2 border-blue-100">' +
+            '<h2 class="text-2xl font-bold text-blue-400 mb-4">Hoy es ' +
+            currentDay +
+            " 🌟</h2>" +
+            '<div class="grid gap-3">' +
+            todayHtml +
+            "</div></div>" +
+            '<div class="bg-white rounded-2xl p-6 shadow-md border-2 border-blue-100">' +
+            '<h2 class="text-2xl font-bold text-blue-400 mb-4">Horario Semanal</h2>' +
+            '<div class="space-y-4">' +
+            weekHtml +
+            "</div></div></div>";
+        } else if (currentView === "stats") {
+          var weekStatsHtml = "";
+          for (var d = 0; d < days.length; d++) {
+            var day = days[d];
+            var dayTasks = schedule[day] || [];
+            var dayCompleted = 0;
+
+            for (var t = 0; t < dayTasks.length; t++) {
+              if (completedTasks[day + "-" + t]) dayCompleted++;
+            }
+
+            var dayPercentage =
+              dayTasks.length > 0
+                ? Math.round((dayCompleted / dayTasks.length) * 100)
+                : 0;
+
+            weekStatsHtml +=
+              '<div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">' +
+              '<span class="font-semibold text-blue-400">' +
+              day +
+              "</span>" +
+              '<div class="flex items-center gap-3">' +
+              '<span class="text-sm text-amber-600">' +
+              dayCompleted +
+              "/" +
+              dayTasks.length +
+              " tareas</span>" +
+              '<div class="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">' +
+              '<div class="h-full bg-gradient-to-r from-blue-300 to-blue-400" style="width: ' +
+              dayPercentage +
+              '%"></div>' +
+              "</div>" +
+              '<span class="text-sm font-bold text-blue-400 w-12 text-right">' +
+              dayPercentage +
+              "%</span>" +
+              "</div></div>";
+          }
+
+          contentHtml =
+            '<div class="space-y-6">' +
+            '<h2 class="text-2xl font-bold text-blue-400">Estadísticas</h2>' +
+            '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">' +
+            '<div class="bg-white rounded-2xl p-6 shadow-md border-2 border-blue-100 text-center">' +
+            '<div class="text-4xl mb-2">✅</div>' +
+            '<p class="text-3xl font-bold text-blue-400">' +
+            stats.completed +
+            "</p>" +
+            '<p class="text-amber-600">Completadas</p></div>' +
+            '<div class="bg-white rounded-2xl p-6 shadow-md border-2 border-blue-100 text-center">' +
+            '<div class="text-4xl mb-2">📋</div>' +
+            '<p class="text-3xl font-bold text-blue-400">' +
+            stats.totalTasks +
+            "</p>" +
+            '<p class="text-amber-600">Total Tareas</p></div>' +
+            '<div class="bg-white rounded-2xl p-6 shadow-md border-2 border-blue-100 text-center">' +
+            '<div class="text-4xl mb-2">🎯</div>' +
+            '<p class="text-3xl font-bold text-blue-400">' +
+            stats.percentage +
+            "%</p>" +
+            '<p class="text-amber-600">Progreso</p></div></div>' +
+            '<div class="bg-white rounded-2xl p-6 shadow-md border-2 border-blue-100">' +
+            '<h3 class="text-xl font-bold text-blue-400 mb-4">Resumen Semanal</h3>' +
+            '<div class="space-y-3">' +
+            weekStatsHtml +
+            "</div></div></div>";
+        } else if (currentView === "settings") {
+          var notifStatusHtml = notificationsEnabled
+            ? '<div class="mb-4 p-4 bg-green-50 border-2 border-green-200 rounded-xl">' +
+              '<p class="text-green-700 font-semibold">✅ Notificaciones Activas</p>' +
+              '<p class="text-sm text-green-600 mt-1">Recibirás alertas cuando sea hora de comenzar tus tareas</p></div>'
+            : '<div class="mb-4 p-4 bg-amber-50 border-2 border-amber-200 rounded-xl">' +
+              '<p class="text-amber-700 font-semibold">⚠️ Notificaciones Desactivadas</p>' +
+              '<p class="text-sm text-amber-600 mt-1">Activa las notificaciones para no olvidar tus tareas</p></div>';
+
+          var notifTipHtml = notificationsEnabled
+            ? '<div class="mt-4 p-4 bg-blue-50 rounded-xl border-2 border-blue-200">' +
+              '<p class="text-sm text-blue-600"><strong>💡 Consejo:</strong> Mantén esta pestaña abierta o instala la app en tu dispositivo para recibir notificaciones.</p></div>'
+            : "";
+
+          contentHtml =
+            '<div class="space-y-6">' +
+            '<div class="bg-white rounded-2xl p-6 shadow-md border-2 border-blue-100">' +
+            '<h2 class="text-2xl font-bold text-blue-400 mb-4">🔔 Notificaciones</h2>' +
+            notifStatusHtml +
+            '<div class="flex items-center justify-between p-4 bg-amber-50 rounded-xl border-2 border-amber-200">' +
+            '<div class="flex items-center gap-3">' +
+            '<span class="text-3xl">🔔</span>' +
+            '<div><p class="font-semibold text-blue-400">Recordatorios de Tareas</p>' +
+            '<p class="text-sm text-amber-600">Recibe alertas cuando sea hora de comenzar</p></div></div>' +
+            '<button onclick="enableNotifications()" class="px-6 py-3 rounded-lg font-semibold shadow-md ' +
+            (notificationsEnabled
+              ? "bg-green-400 text-white"
+              : "bg-blue-300 text-white hover:bg-blue-400") +
+            '">' +
+            (notificationsEnabled ? "✓ Activado" : "Activar") +
+            "</button></div>" +
+            notifTipHtml +
+            "</div>" +
+            '<div class="bg-white rounded-2xl p-6 shadow-md border-2 border-blue-100">' +
+            '<h2 class="text-2xl font-bold text-blue-400 mb-4">👤 Usuario</h2>' +
+            '<div class="p-4 bg-blue-50 rounded-xl border-2 border-blue-200">' +
+            '<p class="text-amber-600 mb-2">Correo electrónico</p>' +
+            '<p class="font-semibold text-blue-400">' +
+            escapeHtml(user.email) +
+            "</p></div></div>" +
+            '<div class="bg-white rounded-2xl p-6 shadow-md border-2 border-blue-100">' +
+            '<h2 class="text-2xl font-bold text-blue-400 mb-4">📱 Instalar App</h2>' +
+            '<div class="p-4 bg-purple-50 rounded-xl border-2 border-purple-200">' +
+            '<p class="text-purple-700 font-semibold mb-3">Para instalar en tu móvil:</p>' +
+            '<ul class="text-sm text-purple-600 space-y-2">' +
+            '<li>• <strong>Chrome/Android:</strong> Menú (⋮) → "Añadir a pantalla de inicio"</li>' +
+            '<li>• <strong>Safari/iPhone:</strong> Compartir (📤) → "Añadir a pantalla de inicio"</li>' +
+            "<li>• Las notificaciones funcionarán como una app nativa</li>" +
+            "</ul></div></div></div>";
+        }
+
+        app.innerHTML =
+          modalHtml +
+          '<header class="bg-white shadow-sm border-b-2 border-blue-100">' +
+          '<div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">' +
+          '<div class="flex items-center gap-3">' +
+          '<img src="icon.svg" alt="🧠" style="width: 40px; height: 40px;">' +
+          '<h1 class="text-xl font-bold text-blue-400">Mi Organizador</h1></div>' +
+          '<button onclick="logout()" class="flex items-center gap-2 text-amber-600 hover:text-amber-700">' +
+          '<span>🚪</span><span class="hidden sm:inline">Salir</span></button></div></header>' +
+          '<nav class="bg-white border-b-2 border-blue-50 sticky top-0 z-10">' +
+          '<div class="max-w-6xl mx-auto px-4">' +
+          '<div class="flex gap-2 overflow-x-auto py-2">' +
+          '<button onclick="currentView=\'schedule\'; render()" class="flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap ' +
+          (currentView === "schedule"
+            ? "bg-blue-300 text-white"
+            : "bg-blue-50 text-blue-400 hover:bg-blue-100") +
+          '">📅 Horario</button>' +
+          '<button onclick="currentView=\'stats\'; render()" class="flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap ' +
+          (currentView === "stats"
+            ? "bg-blue-300 text-white"
+            : "bg-blue-50 text-blue-400 hover:bg-blue-100") +
+          '">📊 Estadísticas</button>' +
+          '<button onclick="currentView=\'settings\'; render()" class="flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap ' +
+          (currentView === "settings"
+            ? "bg-blue-300 text-white"
+            : "bg-blue-50 text-blue-400 hover:bg-blue-100") +
+          '">⚙️ Ajustes</button>' +
+          "</div></div></nav>" +
+          '<main class="max-w-6xl mx-auto px-4 py-6">' +
+          contentHtml +
+          "</main>";
+      }
+
+      loadData();
+      checkAndScheduleNotifications();
+      render();
+
+      setInterval(function () {
+        var now = new Date();
+        if (now.getHours() === 0 && now.getMinutes() === 0) {
+          checkAndScheduleNotifications();
+        }
+      }, 60000);
+
+      // Registrar Service Worker para PWA
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker
+            .register("/service-worker.js")
+            .then(function (registration) {
+              console.log(
+                "Service Worker registrado con éxito:",
+                registration.scope
+              );
+            })
+            .catch(function (error) {
+              console.log("Error al registrar Service Worker:", error);
+            });
+        });
+      }
+
+      // Detectar si la app se puede instalar
+      var deferredPrompt;
+      window.addEventListener("beforeinstallprompt", function (e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        console.log("La app se puede instalar");
+      });
+    </script>
+  </body>
+</html>
